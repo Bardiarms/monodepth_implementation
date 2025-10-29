@@ -2,3 +2,5 @@ raw_data_downloader.sh
 monodepth/data/kitti_raw
 monodepth/data/scripts
 .DS_Store
+monodepth/tests
+__pycache__
