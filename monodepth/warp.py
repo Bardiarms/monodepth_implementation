@@ -10,7 +10,6 @@ def make_base_grid(B: int, H: int, W: int,
                    align_corners: bool):
     """
     Create base normalized grid of shape (B, H, W, 2) with values in [-1,1].
-    This implementation avoids meshgrid axis-order pitfalls by building X and Y explicitly.
     """
     if align_corners:
         xs = torch.linspace(-1.0, 1.0, W, device=device, dtype=dtype)  # length W
