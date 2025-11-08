@@ -21,12 +21,21 @@ class KITTIDataset(Dataset):
 
     def __getitem__(self, idx):
         left_path, right_path, bf_str = self.samples[idx]
-        left_img = Image.open(left_path).convert("RGB")
-        right_img = Image.open(right_path).convert("RGB")
+        
+        with Image.open(left_path) as img:
+            left_img = img.convert("RGB")
+            left_img = TF.resize(left_img, (self.height, self.width))
 
-        # Resize
-        left_img = TF.resize(left_img, (self.height, self.width))
-        right_img = TF.resize(right_img, (self.height, self.width))
+        with Image.open(right_path) as img:
+            right_img = img.convert("RGB")
+            right_img = TF.resize(right_img, (self.height, self.width))
+        
+        # left_img = Image.open(left_path).convert("RGB")
+        # right_img = Image.open(right_path).convert("RGB")
+
+        # # Resize
+        # left_img = TF.resize(left_img, (self.height, self.width))
+        # right_img = TF.resize(right_img, (self.height, self.width))
 
         # Convert to [0,1] tensors
         left_tensor = TF.to_tensor(left_img)
