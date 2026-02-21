@@ -89,76 +89,65 @@ def multiscale_loss(outputs: dict,
                     left: torch.Tensor,
                     right: torch.Tensor,
                     warp_fn,
-                    scales=[0,1,2,3],
-                    smooth_weight=0.1, # Bigger weight compared to the one used in the paper
+                    scales=(0, 1, 2, 3),
+                    smooth_weight=1e-3,
                     lr_weight=1.0,
-                    ssim_weight=0.85) -> tuple:
+                    ssim_weight=0.85):
     """
-    outputs: dict that should contain:
-        - 'disp_{s}'  (left disparities)
-        - optionally 'disp_r_{s}' (right disparities) provided by training script
+    outputs must contain:
+      disp_l_{s}: (B,1,h,w)
+      disp_r_{s}: (B,1,h,w)
     """
-    total_loss = 0.0
-    photometric_total = 0.0
-    smooth_total = 0.0
-    lr_total = 0.0
+    total_loss = left.new_tensor(0.0)
+    photometric_total = left.new_tensor(0.0)
+    smooth_total = left.new_tensor(0.0)
+    lr_total = left.new_tensor(0.0)
 
-    scale_weights = dict()
-    for s in scales:
-        scale_weights[s] = 1.0 / (2 ** s)
-        
-    B, _, H, W = left.shape
+    scale_weights = {s: 1.0 / (2 ** s) for s in scales}
 
     for s in scales:
-        disp_l = outputs.get(f'disp_{s}', None)
-        if disp_l is None:
+        disp_l = outputs.get(f"disp_l_{s}", None)
+        disp_r = outputs.get(f"disp_r_{s}", None)
+        if disp_l is None or disp_r is None:
             continue
-        # derive native size
+
         h_s, w_s = disp_l.shape[2], disp_l.shape[3]
-        left_s = F.interpolate(left, size=(h_s, w_s), mode='bilinear', align_corners=True)
-        right_s = F.interpolate(right, size=(h_s, w_s), mode='bilinear', align_corners=True)
+        left_s = F.interpolate(left, size=(h_s, w_s), mode="bilinear", align_corners=True)
+        right_s = F.interpolate(right, size=(h_s, w_s), mode="bilinear", align_corners=True)
 
-        # left photometric (reconstruct left from right via disp_l)
-        recon_left = warp_fn(right_s, disp_l)
+        # Photometric reconstructions
+        recon_left = warp_fn(right_s, disp_l)   # left from right using d_L
+        recon_right = warp_fn(left_s, -disp_r)   # right from left using d_R. Must be negated.
+
         photo_l = photometric_loss(recon_left, left_s, ssim_weight=ssim_weight)
+        photo_r = photometric_loss(recon_right, right_s, ssim_weight=ssim_weight)
 
-        # right photometric (if right disparities present)
-        photo_r = 0.0
-        disp_r = outputs.get(f'disp_r_{s}', None)
-        if disp_r is not None:
-            recon_right = warp_fn(left_s, disp_r)
-            photo_r = photometric_loss(recon_right, right_s, ssim_weight=ssim_weight)
-
-        photometric_scale = (photo_l + photo_r) * scale_weights[s]
+        right_photo_weight = 2.0  # 1.5–3.0
+        photometric_scale = (photo_l + right_photo_weight * photo_r) * scale_weights[s]
         photometric_total += photometric_scale
 
-        # smoothness (both left and right if both available)
+        # Smoothness
         smooth_l = smoothness_loss(disp_l, left_s)
-        smooth_scale = smooth_l * (smooth_weight * scale_weights[s])
+        smooth_r = smoothness_loss(disp_r, right_s)
+        smooth_scale = (smooth_l + smooth_r) * (smooth_weight * scale_weights[s])
         smooth_total += smooth_scale
 
-        if disp_r is not None:
-            smooth_r = smoothness_loss(disp_r, right_s)
-            smooth_total += smooth_r * (smooth_weight * scale_weights[s])
+        # Left-right consistency:
+        
+        disp_r_warp = warp_fn(disp_r, disp_l)
+        disp_l_warp = warp_fn(disp_l, -disp_r)  # must be negated when used to reconstruct right and to compare in LR consistency
 
-        # left-right consistency (both directions if possible)
-        lr_scale = 0.0
-        if disp_r is not None:
-            # warp right disparity to left and compare
-            try:
-                lr_l = lr_consistency_loss(disp_l, disp_r, warp_fn)
-                lr_r = lr_consistency_loss(disp_r, disp_l, warp_fn)
-                lr_scale = (lr_l + lr_r) * (lr_weight * scale_weights[s])
-                lr_total += lr_scale
-            except Exception:
-                lr_scale = 0.0
+        lr_l = torch.mean(torch.abs(disp_l - disp_r_warp))
+        lr_r = torch.mean(torch.abs(disp_r - disp_l_warp))
+        lr_scale = (lr_l + lr_r) * (lr_weight * scale_weights[s])
+        lr_total += lr_scale
 
         total_loss = total_loss + photometric_scale + smooth_scale + lr_scale
 
     losses = {
-        'total': total_loss,
-        'photometric': photometric_total,
-        'smooth': smooth_total,
-        'lr': lr_total
+        "total": total_loss,
+        "photometric": photometric_total,
+        "smooth": smooth_total,
+        "lr": lr_total,
     }
     return total_loss, losses

@@ -5,4 +5,13 @@ monodepth/data/scripts
 monodepth/tests
 __pycache__
 split_data.py
-lists
+notebooks
+monodepth/data/lists
+scripts
+To_colab
+monodepth/To_colab.zip
+__init__.py
+gt_depths
+splits_eigen
+test_examples
+outputs

@@ -2,46 +2,49 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 import torchvision.transforms.functional as TF
+import os
 
 class KITTIDataset(Dataset):
-    """
-    Loads stereo image pairs and bf values from a KITTI list file.
-    Each line in list_file must be: left_img_path right_img_path bf_value
-    """
-    def __init__(self, list_file, height=256, width=512, training=False):
+    def __init__(self, list_file, data_root, height=256, width=512, training=False):
         super().__init__()
-        with open(list_file, 'r') as f:
-            self.samples = [line.strip().split() for line in f if line.strip()]
+        self.data_root = data_root
         self.height = height
         self.width = width
         self.training = training
+
+        self.samples = []
+        with open(list_file, 'r') as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) != 3:
+                    raise ValueError(f"Line malformed: {line}")
+                
+                drive, left_rel, right_rel = parts
+                left_path = os.path.join(data_root, drive, left_rel)
+                right_path = os.path.join(data_root, drive, right_rel)
+
+                # KITTI baseline × focal length (from P_rect_02)
+                # = 0.54m × fx (≈ 721 px)
+                bf_value = 0.54 * 721.0
+
+                self.samples.append((left_path, right_path, bf_value))
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        left_path, right_path, bf_str = self.samples[idx]
-        
-        with Image.open(left_path) as img:
-            left_img = img.convert("RGB")
-            left_img = TF.resize(left_img, (self.height, self.width))
+        left_path, right_path, bf_value = self.samples[idx]
 
-        with Image.open(right_path) as img:
-            right_img = img.convert("RGB")
-            right_img = TF.resize(right_img, (self.height, self.width))
-        
-        # left_img = Image.open(left_path).convert("RGB")
-        # right_img = Image.open(right_path).convert("RGB")
+        left_img = Image.open(left_path).convert("RGB")
+        right_img = Image.open(right_path).convert("RGB")
 
-        # # Resize
-        # left_img = TF.resize(left_img, (self.height, self.width))
-        # right_img = TF.resize(right_img, (self.height, self.width))
+        left_img = TF.resize(left_img, (self.height, self.width))
+        right_img = TF.resize(right_img, (self.height, self.width))
 
-        # Convert to [0,1] tensors
         left_tensor = TF.to_tensor(left_img)
         right_tensor = TF.to_tensor(right_img)
 
-        bf = torch.tensor(float(bf_str), dtype=torch.float32)
+        bf = torch.tensor(bf_value, dtype=torch.float32)
 
         return {
             "left": left_tensor,
@@ -50,3 +53,4 @@ class KITTIDataset(Dataset):
             "left_path": left_path,
             "right_path": right_path,
         }
+
