@@ -93,11 +93,7 @@ def multiscale_loss(outputs: dict,
                     smooth_weight=1e-3,
                     lr_weight=1.0,
                     ssim_weight=0.85):
-    """
-    outputs must contain:
-      disp_l_{s}: (B,1,h,w)
-      disp_r_{s}: (B,1,h,w)
-    """
+    
     total_loss = left.new_tensor(0.0)
     photometric_total = left.new_tensor(0.0)
     smooth_total = left.new_tensor(0.0)

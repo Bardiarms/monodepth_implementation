@@ -91,28 +91,6 @@ def main(args):
                 ssim_weight=args.ssim_weight
             )
             
-            
-            # # Sanity check
-            # if step == 0:
-            #     dl0 = outs["disp_l_0"]
-            #     dr0 = outs["disp_r_0"]
-            #     print("disp_l_0:", dl0.shape, dl0.min().item(), dl0.mean().item(), dl0.max().item())
-            #     print("disp_r_0:", dr0.shape, dr0.min().item(), dr0.mean().item(), dr0.max().item())
-            #     print("losses:", {k: float(v.item()) for k,v in losses.items()})
-                
-            #     with torch.no_grad():
-            #         disp_l0 = outs["disp_l_0"]
-            #         left0 = left
-            #         right0 = right
-            #         recon_left0 = warp_fn(right0, disp_l0)
-            #         base_err = (right0 - left0).abs().mean().item()
-            #         recon_err = (recon_left0 - left0).abs().mean().item()
-            #         print("base L1 (right-left):", base_err)
-            #         print("recon L1 (warp(right, disp_l)):", recon_err)
-            #         step = args.iters
-            #         break
-        
-            
 
             optim.zero_grad()
             total_loss.backward()
@@ -137,28 +115,6 @@ def main(args):
                 save_path = os.path.join(args.out, f"ckpt_{step:06d}.pth")
                 torch.save(ckpt, save_path)
                
-                        
-               
-            # Debug snippets   
-            # if step % 50 == 0:
-            #     with torch.no_grad():
-            #         recon_left  = warp_fn(right, outs["disp_l_0"])
-            #         recon_right = warp_fn(left,  -outs["disp_r_0"])
-            #         base_l1 = (right - left).abs().mean().item()
-            #         l_recon_l1 = (recon_left - left).abs().mean().item()
-            #         r_recon_l1 = (recon_right - right).abs().mean().item()
-
-            #     dl0 = outs["disp_l_0"]
-            #     print(f"step {step} baseL1={base_l1:.4f} LreconL1={l_recon_l1:.4f} RreconL1={r_recon_l1:.4f} "
-            #         f"dispL(mean={dl0.mean().item():.2f}, max={dl0.max().item():.2f})")
-            #     dr0 = outs["disp_r_0"]
-            #     print(f"dispR(mean={dr0.mean().item():.2f}, max={dr0.max().item():.2f})")
-
-            # Another check
-            # if step % 200 == 0:
-            #     dl = outs["disp_l_0"]
-            #     print("disp_l_0 mean/max:", dl.mean().item(), dl.max().item())
-
             step += 1
             if step >= args.iters:
                 break

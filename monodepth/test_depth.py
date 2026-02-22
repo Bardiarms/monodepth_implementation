@@ -212,10 +212,6 @@ def main(args):
         if errs:
             metrics.append(errs)
             
-        # Sanity check    
-        # if i == 0 and gt is not None:
-        #     print("disp:", disp.shape, "gt:", gt_depth.shape, "disp_gt:", disp_gt.shape)
-            
     # ---- CSV ----
     if metrics:
         out_csv = os.path.join(args.out, "metrics.csv")

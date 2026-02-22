@@ -67,7 +67,7 @@ def warp(image: torch.Tensor,
     norm_shift = (2.0 * disp_.to(dtype=dtype) / float(denom)).unsqueeze(-1)  # B,H,W,1
     
     grid = base_grid.clone()
-    grid[..., 0:1] = grid[..., 0:1] - norm_shift   # <-- subtract, not add
+    grid[..., 0:1] = grid[..., 0:1] - norm_shift 
     warped = F.grid_sample(image, grid, mode=MODE,
                         padding_mode=padding_mode,
                         align_corners=align_corners)
