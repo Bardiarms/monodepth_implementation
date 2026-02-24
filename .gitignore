@@ -15,3 +15,5 @@ gt_depths
 splits_eigen
 test_examples
 outputs
+monodepth/train_test_commands.txt
+monodepth/monodepth2/train_test_commands.txt

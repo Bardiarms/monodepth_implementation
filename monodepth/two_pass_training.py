@@ -1,22 +1,5 @@
 #!/usr/bin/env python3
-"""
-Two-pass training script (left & right) matching Godard et al. 2017.
 
-Usage (from project root):
- python scripts/two_pass_training.py \
-  --list data/lists/kitti_train.txt \
-  --out ~//Users/bardiarms/Documents/CS/University_Courses/UT/Thesis/monodepth_implementation/monodepth/outputs \
-  --n 999999 \
-  --batch_size 4 \
-  --height 256 --width 512 \
-  --iters 400 \
-  --print_freq 5 \ 
-  --save_freq 200 \
-  --num_workers 0
-
-"""
-
-#!/usr/bin/env python3
 import os
 import argparse
 import torch

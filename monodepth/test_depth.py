@@ -242,8 +242,3 @@ if __name__ == "__main__":
     p.add_argument("--vis_every", type=int, default=50, help="save visuals every N samples")
     args = p.parse_args()
     main(args)
-
-
-
-
-
